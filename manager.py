@@ -7,6 +7,7 @@ import hashlib
 import json
 import tkinter.ttk as ttk
 import time
+import pyperclip
 
 class Storage :
     password = None
@@ -173,13 +174,18 @@ class Register(tk.Frame):
             path=os.getcwd()+'/SAFE/'+username+'.json'
             if p.exists(path):
                 messagebox.showinfo('exists','An account with similar user name already exists\nPlease go to login page')
+                self.Entry1.delete(0,tk.END)
+                self.Entry2.delete(0,tk.END)
+                self.Entry3.delete(0,tk.END)
             else:
                 f=open(path,'w')
                 data=json.dumps(l,indent=4)
                 f.write(data)
                 f.close()
-                messagebox.showinfo('Done','please go to login page')
-
+                messagebox.showinfo('Done','You have been succesfully registered!. Please go to login page')
+                self.Entry1.delete(0,tk.END)
+                self.Entry2.delete(0,tk.END)
+                self.Entry3.delete(0,tk.END)            
   
 
 
@@ -215,7 +221,7 @@ class Login(tk.Frame):
         self.Entry3 = tk.Entry(self)
         self.Entry3.place(relx=0.355, rely=0.344,height=24, relwidth=0.329)
         self.Entry3.configure(background="white",show="*")
-    
+    #function to verify the username and password and logs the user in.
     def verify(self,controller):
         us = self.Entry2.get()
         pw = self.Entry3.get()
@@ -261,7 +267,7 @@ class ShowFrame(tk.Frame):
         self.Button1_2 = tk.Button(self)
         self.Button1_2.place(relx=0.761, rely=0.250, height=33, width=131)
         self.Button1_2.configure(pady="0")
-        self.Button1_2.configure(text='''Edit''')
+        self.Button1_2.configure(text='''Delete''',command = self.deleteSite)
         self.Button1_3 = tk.Button(self)
         self.Button1_3.place(relx=0.761,rely=0.570,height=33,width=133)
         self.Button1_3.configure(text="Logout",command=lambda : controller.show_frame("StartPage"))
@@ -270,40 +276,23 @@ class ShowFrame(tk.Frame):
         self.Button1_4.configure(text='''Change Master password''',command= self.changeMasterPassword)
         self.open=False
         
-        
-        self.lbox = tk.Listbox(self,selectmode = "single")
+        #to be modified.. 
+        self.lbox = tk.Listbox(self,selectmode = "browse")
         self.lbox.place(relx=0.026,rely=0.036,relheight=0.923,relwidth=0.658)
+        self.lbox.bind("<<ListboxSelect>>",self.popUpWindow)
         
         self.open=False
         self.list_sites = []
-    def loadlbox(self):
-        self.data = Storage.loadData()
-        self.open = False
-        if(self.lbox.size()==0):
-            for k in self.data[1].keys():
-                self.list_sites.append(k)
-                self.lbox.insert(tk.END,k)
-            self.click = False
-        else:
-            pass 
-        self.site = list(self.lbox.curselection())
-        if(len(self.site)!=0):
-            print(self.list_sites[self.site[-1]])
-            self.showWindow(self.list_sites[self.site[-1]])
-        else:
-            pass       
-
-            
-
 
     def showWindow(self,site):
         if not self.open:
             self.open = True
-            self.click = False
+
             self.swindow = tk.Toplevel(self)
             self.swindow.geometry("485x293+650+150")
             self.swindow.resizable(0,0)
             self.swindow.title("Your Credentials")
+            self.swindow.protocol('WM_DELETE_WINDOW', self.closeShowWindow)
 
             self.e1 = tk.Entry(self.swindow)
             self.e1.place(relx=0.066,rely=0.14,height=24,relwidth=0.421)
@@ -324,13 +313,13 @@ class ShowFrame(tk.Frame):
 
             self.Button1 = tk.Button(self.swindow)
             self.Button1.place(relx=0.573, rely=0.348, height=33, width=56)
-            self.Button1.configure(text='''Copy''')
+            self.Button1.configure(text='''Copy''',command=self.copyUsername)
             self.Button2 = tk.Button(self.swindow)
             self.Button2.place(relx=0.575, rely=0.577, height=33, width=56)
-            self.Button2.configure(text='''Copy''')
+            self.Button2.configure(text='''Copy''',command=self.copyPassword)
             self.Button3 = tk.Button(self.swindow)
             self.Button3.place(relx=0.425, rely=0.802, height=43, width=130)
-            self.Button3.configure(text='''Save Changes''')
+            self.Button3.configure(text='''Save Changes''',command = self.saveChanges)
             self.data = Storage.loadData()
             self.cred=[]
             self.cred = self.data[1][site]
@@ -339,7 +328,27 @@ class ShowFrame(tk.Frame):
             self.e1.insert(tk.END,site)
             self.e2.insert(tk.END,self.username)
             self.e3.insert(tk.END,self.password)
-
+    #functions to copy username/password from the showwindow.
+    def copyUsername(self):
+        pyperclip.copy(self.e2.get())
+        messagebox.showinfo("Message","Username has been copied to clipboard!")
+    def copyPassword(self):
+        pyperclip.copy(self.e3.get())
+        messagebox.showinfo("Message","Password has been copied to clipboard!")
+    #function to delete the selected site from the listbox.    
+    def deleteSite(self):
+        self.site = self.list_sites[self.lbox.curselection()[-1]]
+        s = Storage()
+        self.data = s.getData()
+        del self.data[1][self.site]
+        self.list_sites.remove(self.site)
+        messagebox.showinfo("Deleted",self.site+" has been deleted successfully!")
+        Storage.writeData(self.data)
+        self.lbox.delete(0,tk.END)
+        for k in self.list_sites:      # for loop to refresh the list box and load the remaining sites.
+            self.lbox.insert(tk.END,k)
+            
+        
 
 
     def changeMasterPassword(self):
@@ -380,26 +389,30 @@ class ShowFrame(tk.Frame):
             la4.place(relx=0.249, rely=0.507, height=26, width=70)
             la4.configure(text='''Re-Enter :''')
     
-    
-    
-    
-    
-    
+
+    #function to save the changes has been made.
+    def saveChanges(self):
+        self.website = self.e1.get()
+        self.data = Storage.loadData()
+        self.data[1][self.website] = [self.e2.get(),self.e3.get()]
+        Storage.writeData(self.data)
+    #function to destroy the add password window.    
     def close(self):
         self.open=False
         self.win.destroy()
+    #function to destroy the changeMasterPassword window.   
     def closeCha(self):
         self.open=False
         self.cha.destroy()
-    def closeSwindow(self):
+    #function to close showwindow.
+    def closeShowWindow(self):
         self.open=False
-        self.swindow.destroy()
+        self.swindow.destroy()    
+    #function to change master password.
     def changeAndSave(self):
         p= Storage()
         self.data=p.getData()
-        self.user = p.getUsername()
-        
-            
+        self.user = p.getUsername()   
         if self.entry3.get()==self.entry4.get():
             if self.entry2.get()!=self.user:
                 new_user = self.entry2.get()
@@ -413,23 +426,39 @@ class ShowFrame(tk.Frame):
             self.data[0]=pas 
             p.setData(self.data)
             Storage.writeData(self.data)
-            messagebox.showinfo('Success',"Master password has been successfully changed!")
+            messagemessagebox.showinfo('Success',"Master password has been successfully changed!")
             self.closeCha()
         else:
             messagebox.showinfo('Mismatch','the password did not match')
-
+    #function to add the new passwords.
     def saveAndClose(self):
         p= Storage()
         self.data = p.getData()
-        print(self.data)
         website=self.en1.get()
+        self.list_sites.append(website)
         username=self.en2.get()
         password=self.en3.get()
         re_entry=self.en4.get()
         if len(password)+len(username)+len(website)>3 and password==re_entry :
-            self.data[1][website]=[username,password]
-            Storage.writeData(self.data)
-            self.close()
+            if website not in self.data[1]:
+                self.data[1][website]=[username,password]
+                Storage.writeData(self.data)
+                self.close()
+                self.lbox.delete(0,tk.END)
+                for k in self.list_sites:
+                    self.lbox.insert(tk.END,k)
+            else:
+                self.condition = messagebox.askyesnocancel("already exists","Do you want to rewrite an existing account?if not provide a unique identifier.")
+                if self.condition :
+                    self.data[1][website]=[username,password]
+                    Storage.writeData(self.data)
+                    self.close()
+                    self.lbox.delete(0,tk.END)
+                    self.list_sites=list(set(self.list_sites))
+                    for k in self.list_sites:
+                        self.lbox.insert(tk.END,k)
+
+            
         else:
             if password!=re_entry:
                 messagebox.showinfo('Mismatch',"Passwords did not match")
@@ -478,8 +507,27 @@ class ShowFrame(tk.Frame):
             self.la4 = tk.Label(self.win)
             self.la4.place(relx=0.249,rely=0.507,height=26,width=70)    
             self.la4.configure(text='''Re-Enter :''')
-    
+    def loadlbox(self):
+        self.data = Storage.loadData()
+        #verify self.data[1] if it is empty then display a message box.  
+        if(len(self.data[1])!=0):
+            if(self.lbox.size()==0 or self.lbox.size()!=len(self.data[1])):   #the newly added passwords will be added to listbox.
+                for k in self.data[1].keys():
+                    if k not in self.list_sites:
+                        self.list_sites.append(k)
+                        self.lbox.insert(tk.END,k)
+            else:
+                pass 
+           
+        else:
+            messagebox.showinfo("Add some passwords"," No Credentials of yours have been saved. ")
+    def popUpWindow(self,event):
+        l = event.widget # this line gives stores the widget which is related to the event in the loca.          l variable 
 
+        index = int(l.curselection()[0])
+        self.showWindow(l.get(index))
+
+            
 if __name__ == "__main__":
     app = SampleApp()
     app.mainloop()
