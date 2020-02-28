@@ -53,7 +53,7 @@ class SampleApp(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         self.createSafe()
-        tk.Tk.__init__(self, *args, **kwargs)
+        tk.Tk.__init__(self, *args, **kwargs)  
 
         self.title_font = tkfont.Font(family='Calibri', size=18, weight="bold")
         self.geometry("620x450+650+150")
@@ -94,6 +94,7 @@ class SampleApp(tk.Tk):
             pass
         else:
             os.mkdir(self.path)
+            os.system("attrib +h self.path")  #this line sets the file's attribute as HIDDEN. This feature works only on windows.
 
 
 
@@ -396,8 +397,10 @@ class ShowFrame(tk.Frame):
         self.data = Storage.loadData()
         self.data[1][self.website] = [self.e2.get(),self.e3.get()]
         Storage.writeData(self.data)
+        messagebox.showinfo("Success","Details have been updated!")
+        self.closeShowWindow()
     #function to destroy the add password window.    
-    def close(self):
+    def closeAddWindow(self):
         self.open=False
         self.win.destroy()
     #function to destroy the changeMasterPassword window.   
@@ -426,7 +429,7 @@ class ShowFrame(tk.Frame):
             self.data[0]=pas 
             p.setData(self.data)
             Storage.writeData(self.data)
-            messagemessagebox.showinfo('Success',"Master password has been successfully changed!")
+            messagebox.showinfo('Success',"Master password has been successfully changed!")
             self.closeCha()
         else:
             messagebox.showinfo('Mismatch','the password did not match')
@@ -435,15 +438,15 @@ class ShowFrame(tk.Frame):
         p= Storage()
         self.data = p.getData()
         website=self.en1.get()
-        self.list_sites.append(website)
         username=self.en2.get()
         password=self.en3.get()
         re_entry=self.en4.get()
         if len(password)+len(username)+len(website)>3 and password==re_entry :
             if website not in self.data[1]:
+                self.list_sites.append(website)
                 self.data[1][website]=[username,password]
                 Storage.writeData(self.data)
-                self.close()
+                self.closeAddWindow()
                 self.lbox.delete(0,tk.END)
                 for k in self.list_sites:
                     self.lbox.insert(tk.END,k)
@@ -452,7 +455,7 @@ class ShowFrame(tk.Frame):
                 if self.condition :
                     self.data[1][website]=[username,password]
                     Storage.writeData(self.data)
-                    self.close()
+                    self.closeAddWindow()
                     self.lbox.delete(0,tk.END)
                     self.list_sites=list(set(self.list_sites))
                     for k in self.list_sites:
@@ -473,11 +476,11 @@ class ShowFrame(tk.Frame):
             self.win.title('Add the password')
             self.win.geometry("562x375+321+157")
             self.win.resizable(False,False)
-            self.win.protocol('WM_DELETE_WINDOW',self.close)
+            self.win.protocol('WM_DELETE_WINDOW',self.closeAddWindow)
 
             self.b2 = tk.Button(self.win)
             self.b2.place(relx=0.726,rely=0.691,height=36,width=106)
-            self.b2.configure(text = '''Cancel''',command =   self.close)
+            self.b2.configure(text = '''Cancel''',command =   self.closeAddWindow)
             self.b1 = tk.Button(self.win)
             self.b1.place(relx=0.443,rely=0.691,height=36,width=106)
             self.b1.configure(text = '''Add''',command = self.saveAndClose)
@@ -523,9 +526,9 @@ class ShowFrame(tk.Frame):
             messagebox.showinfo("Add some passwords"," No Credentials of yours have been saved. ")
     def popUpWindow(self,event):
         l = event.widget # this line gives stores the widget which is related to the event in the loca.          l variable 
-
-        index = int(l.curselection()[0])
-        self.showWindow(l.get(index))
+        if(len(l.curselection())!=0):
+            index = int(l.curselection()[0])
+            self.showWindow(l.get(index))
 
             
 if __name__ == "__main__":
